@@ -21,9 +21,13 @@
 /* expand for additional network outputs */
 #define BUFFERSIZE 1
 
+/* uart dma parameters */
 uint8_t aideckRxBuffer[BUFFERSIZE];
 volatile uint8_t dma_flag = 0;
 uint8_t obs_likelihood=0;
+
+/* inference threshold */
+static const uint8_t inf_threshold = 230; // (255*0.9)
 
 /* application states */
 typedef enum {
@@ -52,7 +56,6 @@ static void setHoverSetpoint(setpoint_t *setpoint, float vx, float vy, float z, 
 
 static State app_state = idle;
 
-
 void appMain()
 {
   DEBUG_PRINT("ai-hover application started... \n");
@@ -71,6 +74,12 @@ void appMain()
 	    obs_likelihood = aideckRxBuffer[0]; // save likelihood
 	    memset(aideckRxBuffer, 0, BUFFERSIZE);  // clear the dma buffer
     }
+    // test for compilation
+    setHoverSetpoint(&setpoint, 0, 0, 0, 0);
+    if (obs_likelihood >= inf_threshold)
+    {
+      DEBUG_PRINT("obstacle detected!\n");
+    }
   }
 }
 
@@ -83,5 +92,5 @@ void __attribute__((used)) DMA1_Stream1_IRQHandler(void)
 
 /* add obstacle likelihood as log variable */
 LOG_GROUP_START(log_test)
-LOG_ADD(LOG_UINT8, test_variable_x, &obs_likehihood)
+LOG_ADD(LOG_UINT8, test_variable_x, &obs_likelihood)
 LOG_GROUP_STOP(log_test)
